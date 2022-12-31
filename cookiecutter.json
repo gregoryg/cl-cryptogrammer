@@ -1,0 +1,11 @@
+{
+    "project_name": "cl-cryptogrammer",
+    "repo_name": "{{ cookiecutter.project_name }}",
+    "description": "",
+    "version": "0.0.1",
+    "year": 2022,
+    "author": "Gregory Grubbs",
+    "email": "gregory@dynapse.com",
+    "username": "{{ cookiecutter.author|first|lower }}{{ cookiecutter.author.split()|last|lower }}",
+    "licence": "MIT"
+}
