@@ -1,0 +1,47 @@
+#+title: cl-cryptogrammer - Cryptogram Generator in Common Lisp
+
+* Overview
+
+
+Originally created using an Org Mode task list [[id:0992c765-01f8-40a5-a536-0fd84306055d][Cryptogram generator in Common Lisp]]
+
+Test cryptograms with [[https://www.boxentriq.com/code-breaking/cryptogram][Cryptogram Solver (online tool) | Boxentriq ≫ www.boxentriq.com]]
+
+* Usage
+Run from sources:
+
+    #+begin_src bash
+    make run
+    # aka sbcl --load run.lisp
+    #+end_src
+
+choose your lisp:
+    #+begin_src bash
+    LISP=ccl make run
+    #+end_src
+
+or build and run the binary:
+    #+begin_src bash
+      $ make build
+      $ ./cl-cryptogrammer
+    #+end_src
+
+* Roswell integration
+
+Roswell is an implementation manager and [[https://github.com/roswell/roswell/wiki/Roswell-as-a-Scripting-Environment][script launcher]]
+
+A POC script is in the =roswell/= directory.
+
+Your users can install the script with =gregoryg/cl-cryptogrammer=.
+
+* Dev
+
+Tests are defined with [[https://common-lisp.net/project/fiveam/docs/][Fiveam]]
+
+Run them from the terminal with =make test=.
+
+    #+begin_src bash
+      make test
+    #+end_src
+
+In Slime/Sly, load the test package and run =run!=.    
