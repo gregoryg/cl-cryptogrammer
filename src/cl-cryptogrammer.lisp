@@ -12,12 +12,12 @@
 (ql:quickload :jonathan)
 (ql:quickload :str)
 
-(defvar *cryptogram-connection*
+(defparameter *cryptogram-connection*
   (dbi:connect :sqlite3
-               :database-name (truename "~/projects/homelab/cryptogrammer.db")))
+               :database-name (truename "cryptogrammer.db")))
 
-(dbi:do-sql *cryptogram-connection*
-            "create table if not exists quotations (qid string primary key, author string, quotation, string, date_generated timestamp default current_timestamp )")
+;; (dbi:do-sql *cryptogram-connection*
+;;             "create table if not exists quotations (qid string primary key, author string, quotation, string, date_generated timestamp default current_timestamp )")
 
 (defun get-quotation (&key (minlength 40 min-supplied-p))
   "Retrieve a quotation via the Quotable API.
@@ -66,10 +66,13 @@ Return association list."
 
 (defparameter *current-cryptogram-key* (cryptogram-key))
 
-(defun generate-cryptogram (&key (minlength 40 min-supplied-p) (refresh-all nil))
+(defun generate-cryptogram (&key (minlength 40 min-supplied-p) (refresh-all nil) (quotation nil))
   "Generate a cryptogram from a quotation, a crytogram key.
 TODO: Use global values if set, unless REFRESH-ALL is true."
-  (let* ((quotation-alist (get-quotation :minlength minlength))
+  (let* ((quotation-alist (if (not quotation)
+                              (get-quotation :minlength minlength)
+                              (pairlis (list :id :quote :length)
+                                       (list "CLI" quotation (length quotation)))))
          (quotation       (cdr (assoc :quote quotation-alist)))
          (author          (cdr (assoc :author quotation-alist)))
          (qid             (cdr (assoc :id quotation-alist)))
@@ -78,13 +81,13 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
     (format t "From author ~a" author) ; side effect to stdout
     ;; write to file
     ;; quotable_id|author|quotation|time_generated
-    (str:to-file  "~/projects/homelab/cryptogram-log.org"
+    (str:to-file  (truename "cryptogram-log.org")
                   (format nil "|~a|~a|~a|~a ~C"
                           qid author quotation (local-time:now) #\newline)
                   :if-exists :append)
-    (dbi:do-sql *cryptogram-connection*
-                (format nil "insert or ignore into quotations (qid,author,quotation) values (\"~a\", \"~a\", \"~a\") "
-                        qid author quotation))
+    ;; (dbi:do-sql *cryptogram-connection*
+    ;;             (format nil "insert or ignore into quotations (qid,author,quotation) values (\"~a\", \"~a\", \"~a\") "
+    ;;                     qid author quotation))
 
     (coerce (map 'list
                  (lambda (c)
@@ -93,6 +96,10 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
                      c))
                  downcase-quotation-list) 'string)))
 
+(defun help ()
+  (format t "~&Usage:
+  cl-cryptogrammer [quotation]~&"))
+
 (defun %main (argv)
   "Parse CLI args."
   (when (member "-h" argv :test #'equal)
@@ -100,7 +107,8 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
     ;; clingon, unix-opts, defmain, adopt… when needed.
     (help)
     (uiop:quit))
-  (generate-cryptogram))
+  (print (dbi:connection-database-name *cryptogram-connection*))
+  (print (generate-cryptogram :quotation (first argv))))
 
 (defun main ()
   "Entry point for the executable.
