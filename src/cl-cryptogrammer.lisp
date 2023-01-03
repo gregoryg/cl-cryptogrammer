@@ -37,7 +37,7 @@
 
   (let ((quotation (with-output-to-string (stream) (uiop:run-program (format nil "fortune -n ~d -l" minlength)  :output stream))))
     (pairlis (list :id :quote :length)
-             (list "fortune-cli" quotation (length(quotation))))))
+             (list "fortune-cli" quotation (length quotation )))))
 
 (defun get-quotation (&key (quote-source 'quotable) (minlength 40 min-supplied-p))
   "Retrieve a quotation via the Quotable API.
@@ -111,6 +111,32 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
                      c))
                  downcase-quotation-list) 'string)))
 
+
+;; find-executable lifted from https://gist.github.com/ryukinix/5273af4b25dec53ed9f078bd7e350d88
+(defun executables ()
+  (loop with path = (uiop:getenv "PATH")
+        for p in (uiop:split-string path :separator ":")
+        for dir = (probe-file p)
+        when (uiop:directory-exists-p dir)
+          append (uiop:directory-files dir)))
+
+(defun find-executable (name)
+  (find name (executables)
+        :test #'equalp
+        :key #'pathname-name))
+
+(defun prepare-config-dir ()
+  "Prepare configuration directory.  Return alist."
+
+  (let* ((sqlite-found (find-executable "sqlite3"))  ;; check for existence of sqlite3
+         (config-home (or (uiop:getenv "XDG_CONFIG_HOME") (truename "~/.config/")))
+         (config-path )
+         )
+    )
+  )
+
+
+
 (defun help ()
   (format t "~&Usage:
   cl-cryptogrammer [quotation]~&"))
@@ -128,6 +154,7 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
 (defun main ()
   "Entry point for the executable.
   Reads command line arguments."
+
   ;; uiop:command-line-arguments returns a list of arguments (sans the script name).
   ;; We defer the work of parsing to %main because we call it also from the Roswell script.
   (%main (uiop:command-line-arguments)))
