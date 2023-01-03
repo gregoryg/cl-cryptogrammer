@@ -19,9 +19,8 @@
 ;; (dbi:do-sql *cryptogram-connection*
 ;;             "create table if not exists quotations (qid string primary key, author string, quotation, string, date_generated timestamp default current_timestamp )")
 
-(defun get-quotation (&key (minlength 40 min-supplied-p))
-  "Retrieve a quotation via the Quotable API.
-Return association list."
+(defun quotable-quotation (&key (minlength 40 min-supplied-p))
+  "Retrieve a quotation from the Quotable.io API."
   (let ((quotation (jojo:parse (dex:get (format nil "https://api.quotable.io/random?minLength=~a" minlength)))))
     (pairlis
      (list :id
@@ -32,6 +31,22 @@ Return association list."
            (getf quotation :|content|)
            (getf quotation :|author|)
            (length (getf quotation :|content|))))))
+
+(defun fortune-local-quotation (&key (minlength 40 min-supplied-p))
+  "Retrieve a quotation from the local OS fortune command."
+
+  (let ((quotation (with-output-to-string (stream) (uiop:run-program (format nil "fortune -n ~d -l" minlength)  :output stream))))
+    (pairlis (list :id :quote :length)
+             (list "fortune-cli" quotation (length(quotation))))))
+
+(defun get-quotation (&key (quote-source 'quotable) (minlength 40 min-supplied-p))
+  "Retrieve a quotation via the Quotable API.
+Return association list."
+  (cond ((eq 'quotable quote-source)
+         (quotable-quotation :minlength minlength))
+        ((eq 'fortune-cli quote-source)
+          (fortune-local-quotation :minlength minlength))
+        (t nil)))
 
 (defun string-letter-frequency (str &optional (case-conversion t))
   "Count letter frequency of a string."
@@ -66,11 +81,11 @@ Return association list."
 
 (defparameter *current-cryptogram-key* (cryptogram-key))
 
-(defun generate-cryptogram (&key (minlength 40 min-supplied-p) (refresh-all nil) (quotation nil))
+(defun generate-cryptogram (&key (minlength 40 min-supplied-p) (quote-source 'quotable) (refresh-all nil) (quotation nil))
   "Generate a cryptogram from a quotation, a crytogram key.
 TODO: Use global values if set, unless REFRESH-ALL is true."
   (let* ((quotation-alist (if (not quotation)
-                              (get-quotation :minlength minlength)
+                              (get-quotation :minlength minlength :quote-source quote-source)
                               (pairlis (list :id :quote :length)
                                        (list "CLI" quotation (length quotation)))))
          (quotation       (cdr (assoc :quote quotation-alist)))
