@@ -14,10 +14,10 @@
 
 (defparameter *cryptogram-connection*
   (dbi:connect :sqlite3
-               :database-name (truename "cryptogrammer.db")))
+               :database-name (truename "~/.config/cryptogrammer/cryptogrammer.db")))
 
-;; (dbi:do-sql *cryptogram-connection*
-;;             "create table if not exists quotations (qid string primary key, author string, quotation, string, date_generated timestamp default current_timestamp )")
+(dbi:do-sql *cryptogram-connection*
+            "create table if not exists quotations (qid string primary key, author string, quotation, string, date_generated timestamp default current_timestamp )")
 
 (defun quotable-quotation (&key (minlength 40 min-supplied-p))
   "Retrieve a quotation from the Quotable.io API."
@@ -35,9 +35,11 @@
 (defun fortune-local-quotation (&key (minlength 40 min-supplied-p))
   "Retrieve a quotation from the local OS fortune command."
 
-  (let ((quotation (with-output-to-string (stream) (uiop:run-program (format nil "fortune -n ~d -l" minlength)  :output stream))))
-    (pairlis (list :id :quote :length)
-             (list "fortune-cli" quotation (length quotation )))))
+  (let* ((output (str:split "%" (with-output-to-string (stream) (uiop:run-program (format nil "fortune -c -a -n ~d -l" minlength)  :output stream))))
+         (author (str:replace-all (string #\Newline) "" (first output)))
+         (quotation (str:replace-first (string #\Newline) "" (second output))))
+    (pairlis (list :id :author :quote :length)
+             (list "fortune-cli" author quotation (length quotation )))))
 
 (defun get-quotation (&key (quote-source 'quotable) (minlength 40 min-supplied-p))
   "Retrieve a quotation via the Quotable API.
@@ -96,13 +98,13 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
     (format t "From author ~a" author) ; side effect to stdout
     ;; write to file
     ;; quotable_id|author|quotation|time_generated
-    (str:to-file  (truename "cryptogram-log.org")
+    (str:to-file  (truename "~/.config/cryptogrammer/cryptogram-log.org")
                   (format nil "|~a|~a|~a|~a ~C"
                           qid author quotation (local-time:now) #\newline)
                   :if-exists :append)
-    ;; (dbi:do-sql *cryptogram-connection*
-    ;;             (format nil "insert or ignore into quotations (qid,author,quotation) values (\"~a\", \"~a\", \"~a\") "
-    ;;                     qid author quotation))
+    (dbi:do-sql *cryptogram-connection*
+                (format nil "insert or ignore into quotations (qid,author,quotation) values ('~a', '~a', '~a') "
+                        qid author quotation))
 
     (coerce (map 'list
                  (lambda (c)
