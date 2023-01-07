@@ -58,8 +58,7 @@ Return association list."
     ;; (defparameter *gort* mybag)
     (fset:do-bag-pairs (value mult mybag)
                        ;; (format t "~a: ~a~%" value mult)
-                       (format t "~a: ~a~%" mult value)
-                       )))
+                       (format t "~a: ~a~%" mult value))))
 
 (defun string-word-frequency (str &optional (case-conversion t))
   "Count words in a string."
@@ -132,12 +131,7 @@ TODO: Use global values if set, unless REFRESH-ALL is true."
 
   (let* ((sqlite-found (find-executable "sqlite3"))  ;; check for existence of sqlite3
          (config-home (or (uiop:getenv "XDG_CONFIG_HOME") (truename "~/.config/")))
-         (config-path )
-         )
-    )
-  )
-
-
+         (config-path ))))
 
 (defun help ()
   (format t "~&Usage:
