@@ -82,35 +82,38 @@ Return association list."
 
 (defparameter *current-cryptogram-key* (cryptogram-key))
 
-(defun generate-cryptogram (&key (minlength 40 min-supplied-p) (quote-source 'quotable) (refresh-all nil) (quotation nil))
-  "Generate a cryptogram from a quotation, a crytogram key.
-TODO: Use global values if set, unless REFRESH-ALL is true."
+(defun log-cryptogram (quotation &optional id (source :quotable) author (tags nil) )
+  "Log the generated cryptogram.
+Set ID if applicable - this would be an ID on the source system, not in the log database.
+Set TAGS as list of strings for systems that have categories or tags."
+  ;; (print (format nil "log called with quotation ~a" quotation ))
+  (unless (str:emptyp quotation)
+    ;; log to database
+    (dbi:do-sql *cryptogram-connection*
+                ;; (format nil "insert or ignore into quotations (qid,author,quotation) values ('~a', '~a', '~a') "
+                (format nil "insert or ignore into quotations (sourceid,author,quotation) values ('~a', '~a', '~a') "
+                        (or id "") (or author "unspecified") (str:replace-all "'" "''" quotation)))))
+
+(defun generate-cryptogram (&key (minlength 40 min-supplied-p) (quote-source :quotable) (quotation nil))
+  "Generate a cryptogram from a quotation, a crytogram key."
   (let* ((quotation-alist (if (not quotation)
                               (get-quotation :minlength minlength :quote-source quote-source)
                               (pairlis (list :id :quote :length)
                                        (list "CLI" quotation (length quotation)))))
          (quotation       (cdr (assoc :quote quotation-alist)))
          (author          (cdr (assoc :author quotation-alist)))
-         (qid             (cdr (assoc :id quotation-alist)))
+         (id             (cdr (assoc :id quotation-alist)))
          (downcase-quotation-list (coerce (string-downcase quotation) 'list))
          (cryptokey (cryptogram-key)))
     (format t "From author ~a" author) ; side effect to stdout
-    ;; write to file
-    ;; quotable_id|author|quotation|time_generated
-    (str:to-file  (truename "~/.config/cryptogrammer/cryptogram-log.org")
-                  (format nil "|~a|~a|~a|~a ~C"
-                          qid author quotation (local-time:now) #\newline)
-                  :if-exists :append)
-    (dbi:do-sql *cryptogram-connection*
-                (format nil "insert or ignore into quotations (qid,author,quotation) values ('~a', '~a', '~a') "
-                        qid author quotation))
 
-    (coerce (map 'list
+    (print (coerce (map 'list
                  (lambda (c)
                    (if (alpha-char-p c)
                        (cdr (assoc c cryptokey))
                      c))
-                 downcase-quotation-list) 'string)))
+                 downcase-quotation-list) 'string))
+    (log-cryptogram quotation id quote-source author)))
 
 
 ;; find-executable lifted from https://gist.github.com/ryukinix/5273af4b25dec53ed9f078bd7e350d88
