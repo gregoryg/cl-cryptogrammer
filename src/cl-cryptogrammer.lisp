@@ -41,12 +41,12 @@
     (pairlis (list :id :author :quote :length)
              (list "fortune-cli" author quotation (length quotation )))))
 
-(defun get-quotation (&key (quote-source 'quotable) (minlength 40 min-supplied-p))
+(defun get-quotation (&key (quote-source :quotable) (minlength 40 min-supplied-p))
   "Retrieve a quotation via the Quotable API.
 Return association list."
-  (cond ((eq 'quotable quote-source)
+  (cond ((eq :quotable quote-source)
          (quotable-quotation :minlength minlength))
-        ((eq 'fortune-cli quote-source)
+        ((eq :fortune-cli quote-source)
           (fortune-local-quotation :minlength minlength))
         (t nil)))
 
